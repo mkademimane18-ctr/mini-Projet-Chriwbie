@@ -2,25 +2,33 @@
 
 header('Content-Type: application/json; charset=utf-8');
 
+$respond = static function (int $status, array $payload): void {
+    http_response_code($status);
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+};
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['error' => 'Méthode non autorisée'], JSON_UNESCAPED_UNICODE);
+    header('Allow: POST');
+    $respond(405, ['success' => false, 'error' => 'Méthode non autorisée.']);
     exit;
 }
 
 try {
     require_once __DIR__ . '/../config/db.php';
 } catch (Throwable $e) {
-    error_log('Announcement database setup failed (' . get_class($e) . ').');
-    http_response_code(503);
-    echo json_encode(['error' => 'Service base de donnees indisponible.'], JSON_UNESCAPED_UNICODE);
+    $missingConfiguration = $e->getCode() === 1001;
+    error_log(sprintf('Announcement database setup failed (type: %s, code: %s).', get_class($e), (string) $e->getCode()));
+    $respond(503, [
+        'success' => false,
+        'error' => $missingConfiguration
+            ? 'Configuration de la base de données absente.'
+            : 'Connexion à la base de données indisponible.'
+    ]);
     exit;
 }
 
 $rawBody = file_get_contents('php://input');
 $data = json_decode($rawBody, true);
-
-// Keep JSON as the primary API format while accepting traditional local form posts.
 if (!is_array($data)) {
     $data = $_POST;
 }
@@ -33,8 +41,11 @@ $categorie = trim((string) ($data['categorie'] ?? ''));
 $photo = trim((string) ($data['photo'] ?? ''));
 
 if ($titre === '') {
-    http_response_code(400);
-    echo json_encode(['error' => 'Le titre est obligatoire'], JSON_UNESCAPED_UNICODE);
+    $respond(400, ['success' => false, 'error' => 'Le titre est obligatoire.']);
+    exit;
+}
+if ($prix !== null && $prix !== '' && (!is_numeric($prix) || (float) $prix < 0)) {
+    $respond(400, ['success' => false, 'error' => 'Le prix doit être un nombre positif ou nul.']);
     exit;
 }
 
@@ -42,7 +53,6 @@ try {
     $sql = "INSERT INTO annonces
             (titre, description, prix, ville, categorie, photo)
             VALUES (:titre, :description, :prix, :ville, :categorie, :photo)";
-
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         'titre' => $titre,
@@ -52,19 +62,22 @@ try {
         'categorie' => $categorie,
         'photo' => $photo
     ]);
-
     if ($stmt->rowCount() !== 1) {
         throw new RuntimeException('Insertion annonce sans ligne affectée.');
     }
 
-    http_response_code(201);
-    echo json_encode([
-        'success' => true,
-        'id' => $pdo->lastInsertId()
-    ], JSON_UNESCAPED_UNICODE);
-
+    $respond(201, ['success' => true, 'id' => $pdo->lastInsertId()]);
 } catch (Throwable $e) {
-    error_log('Announcement insert failed (' . get_class($e) . ').');
-    http_response_code(500);
-    echo json_encode(['error' => 'Erreur lors de l’enregistrement de l’annonce.'], JSON_UNESCAPED_UNICODE);
+    if ($e instanceof PDOException) {
+        $sqlState = (string) $e->getCode();
+        $driverCode = isset($e->errorInfo[1]) ? (string) $e->errorInfo[1] : 'unknown';
+        error_log(sprintf(
+            'Announcement insert failed (SQLSTATE: %s, driver code: %s).',
+            preg_match('/^[A-Z0-9]{5}$/', $sqlState) ? $sqlState : 'unknown',
+            ctype_digit($driverCode) ? $driverCode : 'unknown'
+        ));
+    } else {
+        error_log(sprintf('Announcement insert failed (type: %s, code: %s).', get_class($e), (string) $e->getCode()));
+    }
+    $respond(500, ['success' => false, 'error' => 'Erreur lors de l’enregistrement de l’annonce.']);
 }
