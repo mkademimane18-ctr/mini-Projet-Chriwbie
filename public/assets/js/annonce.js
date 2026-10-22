@@ -397,16 +397,41 @@
 
   async function upload() {
     if (!state.photos.length) return '';
+
+    const file = state.photos[0].file;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (file.size > 5 * 1024 * 1024) throw new Error('La photo doit faire moins de 5 Mo.');
+    if (file.type && !allowedTypes.includes(file.type)) throw new Error('Formats acceptés : JPG, PNG et WEBP.');
+
     const formData = new FormData();
-    formData.append('photo', state.photos[0].file);
-    const response = await fetch(UPLOAD, { method: 'POST', headers: { Accept: 'application/json' }, body: formData });
-    const data = await response.json().catch(() => null);
-    if (!response.ok || !data || data.success !== true || typeof data.url !== 'string') {
-      throw new Error(data?.error || `Échec de l’envoi de la photo (HTTP ${response.status}).`);
+    formData.append('photo', file);
+    const response = await fetch(UPLOAD, {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      body: formData
+    });
+    const contentType = response.headers.get('content-type') || '';
+    const body = await response.text();
+    let data = null;
+    try { if (body.trim()) data = JSON.parse(body); } catch (_) { /* handled below */ }
+
+    if (!contentType.toLowerCase().includes('application/json') || !data || typeof data !== 'object') {
+      console.error('API upload photo: réponse non JSON', {
+        status: response.status,
+        contentType,
+        body: body.trim() ? 'non-vide' : 'vide'
+      });
+      throw new Error(`Le serveur photo a renvoyé une réponse invalide (HTTP ${response.status}).`);
+    }
+    if (!response.ok || data.success !== true || typeof data.url !== 'string' || !data.url.startsWith('https://')) {
+      console.error('API upload photo: téléversement refusé', {
+        status: response.status,
+        code: typeof data.code === 'string' ? data.code : 'UPLOAD_FAILED'
+      });
+      throw new Error(data.error || `Le téléversement a échoué (HTTP ${response.status}).`);
     }
     return data.url;
   }
-
   async function submit() {
     if (state.busy) return;
     if (!state.form.title.trim()) { state.error = 'Le titre est obligatoire.'; render(); return; }
