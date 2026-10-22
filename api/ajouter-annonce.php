@@ -8,7 +8,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-require_once __DIR__ . '/../config/db.php';
+try {
+    require_once __DIR__ . '/../config/db.php';
+} catch (Throwable $e) {
+    error_log('Announcement database setup failed (' . get_class($e) . ').');
+    http_response_code(503);
+    echo json_encode(['error' => 'Service base de donnees indisponible.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 $rawBody = file_get_contents('php://input');
 $data = json_decode($rawBody, true);
@@ -57,11 +64,7 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
-    error_log(sprintf(
-        'Échec publication annonce (%s): %s',
-        get_class($e),
-        $e->getMessage()
-    ));
+    error_log('Announcement insert failed (' . get_class($e) . ').');
     http_response_code(500);
     echo json_encode(['error' => 'Erreur lors de l’enregistrement de l’annonce.'], JSON_UNESCAPED_UNICODE);
 }

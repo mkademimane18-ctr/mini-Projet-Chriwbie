@@ -1,4 +1,3 @@
-
 <?php
 
 header('Content-Type: application/json; charset=utf-8');
@@ -9,7 +8,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-require_once __DIR__ . '/../vendor/autoload.php';
+try {
+    require_once __DIR__ . '/../vendor/autoload.php';
+} catch (Throwable $e) {
+    error_log('Photo upload setup failed (' . get_class($e) . ').');
+    http_response_code(503);
+    echo json_encode(['error' => 'Service de photo indisponible.'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 use Cloudinary\Configuration\Configuration;
 use Cloudinary\Api\Upload\UploadApi;
@@ -64,7 +70,7 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
-    error_log($e->getMessage());
+    error_log('Photo upload failed (' . get_class($e) . ').');
     http_response_code(500);
     echo json_encode(['error' => 'Échec du téléversement']);
 }
