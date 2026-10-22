@@ -105,3 +105,56 @@
   if(state.path==='/admin'&&!isAdminVerified()){state.path='/admin/access';location.hash=state.path;}
   render();
 })();
+
+function searchPage() {
+  const p = state.path;
+
+  const list = state.homeListings
+    .map(a => ({
+      id: `annonce-${a.id}`,
+      name: a.titre || 'Annonce',
+      description: a.description || '',
+      price: a.prix == null || a.prix === ''
+        ? 'Prix à convenir'
+        : `${a.prix} DH`,
+      place: [a.ville, a.categorie]
+        .filter(Boolean)
+        .join(' · ') || 'Maroc',
+      image: a.photo || 'publish-chair.png',
+      remoteImage: Boolean(a.photo),
+      category: a.categorie || 'Autres',
+      date_creation: a.date_creation,
+      route: '/search'
+    }))
+    .filter(a =>
+      !state.query ||
+      a.name.toLowerCase().includes(state.query.toLowerCase()) ||
+      a.category.toLowerCase().includes(state.query.toLowerCase()) ||
+      a.place.toLowerCase().includes(state.query.toLowerCase())
+    );
+
+  const results = state.homeListingsLoading
+    ? '<p class="quiet">Chargement des annonces...</p>'
+    : state.homeListingsError
+      ? '<p class="quiet">Impossible de charger les annonces.</p>'
+      : cardGrid(list, p === '/search/list' ? 'list-view' : '');
+
+  return `<main class="page search-page">
+    ${searchBox()}
+    <div class="chip-row">
+      <button data-go="/search/filters">⌖ Tanger</button>
+      <button class="active">${safe(state.query || 'Toutes les annonces')}</button>
+      <button data-go="/search/filters">☷ Filtres</button>
+    </div>
+    <div class="results-row">
+      <div><b>${list.length} annonces</b><small>${state.sort}</small></div>
+      <div class="view-tools">
+        ${btn('☷','/search/sort')}
+        ${btn('☰','/search/list',p === '/search/list' ? 'view-on' : '')}
+        ${btn('▦','/search/grid',p !== '/search/list' ? 'view-on' : '')}
+      </div>
+    </div>
+    ${results}
+  </main>`;
+}
+
