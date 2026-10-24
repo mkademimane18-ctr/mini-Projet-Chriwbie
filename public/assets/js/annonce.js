@@ -61,8 +61,8 @@
     } catch (_) { return FALLBACK; }
   }
 
-  const photo = (_value, _alt = '', cls = '') =>
-    `<img class="${esc(cls)}" src="${esc(src(LOGO))}" alt="Logo Chriwbie" data-fallback="${FALLBACK}">`;
+  const photo = (value, alt = '', cls = '') =>
+    `<img class="${esc(cls)}" src="${esc(src(value || LOGO))}" alt="${esc(alt || 'Photo')}" data-fallback="${FALLBACK}">`;
   const btn = (text, path, cls = '') =>
     `<button type="button" class="${esc(cls)}" data-go="${esc(path)}">${text}</button>`;
   const money = value => {
@@ -415,20 +415,23 @@
     let data = null;
     try { if (body.trim()) data = JSON.parse(body); } catch (_) { /* handled below */ }
 
+    const statusLabel = 'HTTP ' + response.status + (response.statusText ? ' ' + response.statusText : '');
+    const rawMessage = body.trim().replace(/[\r\n\t]+/g, ' ').slice(0, 1200);
+    const serverMessage = data && typeof data.error === 'string' && data.error.trim()
+      ? data.error.trim()
+      : rawMessage;
+
     if (!contentType.toLowerCase().includes('application/json') || !data || typeof data !== 'object') {
-      console.error('API upload photo: réponse non JSON', {
-        status: response.status,
-        contentType,
-        body: body.trim() ? 'non-vide' : 'vide'
-      });
-      throw new Error(`Le serveur photo a renvoyé une réponse invalide (HTTP ${response.status}).`);
+      console.error('API upload photo: réponse non JSON', { status: response.status, contentType, body: rawMessage });
+      throw new Error('Échec de l’upload (' + statusLabel + ') : ' + (serverMessage || 'réponse vide ou invalide du serveur.'));
     }
     if (!response.ok || data.success !== true || typeof data.url !== 'string' || !data.url.startsWith('https://')) {
       console.error('API upload photo: téléversement refusé', {
         status: response.status,
-        code: typeof data.code === 'string' ? data.code : 'UPLOAD_FAILED'
+        code: typeof data.code === 'string' ? data.code : 'UPLOAD_FAILED',
+        error: serverMessage || 'Aucun détail fourni par le serveur.'
       });
-      throw new Error(data.error || `Le téléversement a échoué (HTTP ${response.status}).`);
+      throw new Error('Échec de l’upload (' + statusLabel + ') : ' + (serverMessage || 'Le serveur n’a pas renvoyé d’URL HTTPS valide.'));
     }
     return data.url;
   }

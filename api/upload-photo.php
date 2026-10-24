@@ -2,6 +2,12 @@
 
 header('Content-Type: application/json; charset=utf-8');
 
+$requestId = bin2hex(random_bytes(8));
+header('X-Request-ID: ' . $requestId);
+$logDiagnostic = static function (string $event, array $context = []) use ($requestId): void {
+    $entry = ['request_id' => $requestId, 'event' => $event] + $context;
+    error_log('Photo upload diagnostic: ' . json_encode($entry, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE));
+};
 $respond = static function (int $status, array $payload): void {
     http_response_code($status);
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
@@ -16,7 +22,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 try {
     require_once __DIR__ . '/../vendor/autoload.php';
 } catch (Throwable $e) {
-    error_log(sprintf('Photo upload dependency loading failed (type: %s, code: %s).', get_class($e), (string) $e->getCode()));
+    $logDiagnostic('dependency_load_failed', ['status' => 503, 'exception_type' => get_class($e)]);
     $respond(503, ['success' => false, 'error' => 'Service de stockage photo indisponible.', 'code' => 'UPLOAD_DEPENDENCY_UNAVAILABLE']);
     exit;
 }
@@ -44,7 +50,7 @@ foreach ([
     }
 }
 if ($missing !== []) {
-    error_log('Photo upload configuration missing variables: ' . implode(', ', $missing) . '.');
+    $logDiagnostic('configuration_missing', ['status' => 503, 'missing_variables' => $missing]);
     $respond(503, ['success' => false, 'error' => 'Stockage photo non configuré sur le serveur.', 'code' => 'UPLOAD_CONFIGURATION_MISSING']);
     exit;
 }
@@ -65,7 +71,7 @@ if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
         UPLOAD_ERR_EXTENSION => 'Le serveur a interrompu le téléversement de la photo.'
     ];
     $code = (int) $file['error'];
-    error_log('Photo upload rejected by PHP (upload error code: ' . $code . ').');
+    $logDiagnostic('php_upload_failed', ['upload_error_code' => $code]);
     $respond($code === UPLOAD_ERR_INI_SIZE || $code === UPLOAD_ERR_FORM_SIZE ? 413 : 400, [
         'success' => false,
         'error' => $uploadErrors[$code] ?? 'Le fichier photo n’a pas pu être reçu.',
@@ -87,7 +93,7 @@ if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
 try {
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
 } catch (Throwable $e) {
-    error_log(sprintf('Photo MIME inspection failed (type: %s, code: %s).', get_class($e), (string) $e->getCode()));
+    $logDiagnostic('mime_inspection_failed', ['status' => 500, 'exception_type' => get_class($e)]);
     $respond(500, ['success' => false, 'error' => 'Le serveur ne peut pas vérifier le format de la photo.', 'code' => 'PHOTO_VALIDATION_FAILED']);
     exit;
 }
@@ -97,6 +103,7 @@ if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
 }
 
 try {
+    $logDiagnostic('cloudinary_upload_started', ['file_size' => (int) $file['size'], 'mime_type' => $mime]);
     \Cloudinary\Configuration\Configuration::instance("cloudinary://{$apiKey}:{$apiSecret}@{$cloudName}");
     $result = (new \Cloudinary\Api\Upload\UploadApi())->upload($file['tmp_name'], [
         'folder' => 'chriwbie',
@@ -104,21 +111,32 @@ try {
     ]);
     $url = $result['secure_url'] ?? null;
     if (!is_string($url) || filter_var($url, FILTER_VALIDATE_URL) === false || strtolower((string) parse_url($url, PHP_URL_SCHEME)) !== 'https') {
-        error_log('Photo provider returned no valid HTTPS asset URL.');
+        $logDiagnostic('cloudinary_url_invalid', ['status' => 502, 'secure_url_valid' => false]);
         $respond(502, ['success' => false, 'error' => 'Le stockage photo n’a pas confirmé l’image.', 'code' => 'UPLOAD_URL_MISSING']);
         exit;
     }
+    $logDiagnostic('cloudinary_upload_succeeded', ['status' => 201, 'secure_url_valid' => true, 'url_host' => strtolower((string) parse_url($url, PHP_URL_HOST)), 'file_size' => (int) $file['size']]);
     $respond(201, ['success' => true, 'url' => $url]);
 } catch (Throwable $e) {
     $errorCode = $e->getCode();
-    error_log(sprintf(
-        'Cloudinary photo upload failed (type: %s, code: %s).',
-        get_class($e),
-        is_scalar($errorCode) && preg_match('/^[A-Za-z0-9_-]{1,20}$/', (string) $errorCode) ? (string) $errorCode : 'unknown'
-    ));
+    $safeCode = is_scalar($errorCode) && preg_match('/^[A-Za-z0-9_-]{1,20}$/', (string) $errorCode)
+        ? (string) $errorCode : 'unknown';
+    $safeMessage = trim((string) $e->getMessage());
+    foreach ([$apiKey, $apiSecret, $cloudName] as $credential) {
+        if ($credential !== '') {
+            $safeMessage = str_replace($credential, '[redacted]', $safeMessage);
+        }
+    }
+    $safeMessage = substr((string) preg_replace('/[\r\n\t]+/', ' ', $safeMessage), 0, 400);
+    $logDiagnostic('cloudinary_upload_failed', [
+        'status' => 502,
+        'exception_type' => get_class($e),
+        'error_code' => $safeCode,
+        'provider_message' => $safeMessage
+    ]);
     $respond(502, [
         'success' => false,
-        'error' => 'Le service de stockage photo a refusé le téléversement. Vérifiez les logs serveur.',
+        'error' => 'Cloudinary a refusé le téléversement : ' . ($safeMessage !== '' ? $safeMessage : 'cause non détaillée') . ' (référence ' . $requestId . ').',
         'code' => 'CLOUDINARY_UPLOAD_FAILED'
     ]);
 }
