@@ -452,9 +452,24 @@
           categorie: state.form.category, photo: photoUrl
         })
       });
-      const data = await response.json().catch(() => null);
+      const responseBody = await response.text();
+      let data = null;
+      try { if (responseBody.trim()) data = JSON.parse(responseBody); } catch (_) { /* handled below */ }
       if (!response.ok || !data || data.success !== true || !data.id) {
-        throw new Error(data?.error || `L’API n’a pas confirmé l’enregistrement (HTTP ${response.status}).`);
+        const statusLabel = 'HTTP ' + response.status + (response.statusText ? ' ' + response.statusText : '');
+        const rawMessage = responseBody.trim().replace(/[\r\n\t]+/g, ' ').slice(0, 1000);
+        const serverMessage = data && typeof data.error === 'string' && data.error.trim()
+          ? data.error.trim()
+          : rawMessage;
+        console.error('API création annonce: échec', {
+          status: response.status,
+          code: typeof data?.code === 'string' ? data.code : 'CREATE_FAILED',
+          requestId: typeof data?.request_id === 'string' ? data.request_id : response.headers.get('x-request-id'),
+          error: serverMessage || 'Réponse vide ou invalide du serveur.'
+        });
+        throw new Error('Échec de l’enregistrement (' + statusLabel + ')' +
+          (typeof data?.code === 'string' ? ' [' + data.code + ']' : '') +
+          ' : ' + (serverMessage || 'Réponse vide ou invalide du serveur.'));
       }
       state.saved = true;
       state.savedPhoto = photoUrl;
