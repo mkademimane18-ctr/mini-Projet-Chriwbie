@@ -28,8 +28,15 @@ try {
 } catch (Throwable $e) {
 
     error_log(
-        'Announcements endpoint failed (' . get_class($e) . ').'
+        'Announcements endpoint failed: ' .
+        get_class($e) .
+        ' | Code: ' . $e->getCode() .
+        ' | Message: ' . $e->getMessage()
     );
+
+    if ($e instanceof PDOException && is_array($e->errorInfo)) {
+        error_log('PDO Error Info: ' . json_encode($e->errorInfo));
+    }
 
     http_response_code(503);
 
