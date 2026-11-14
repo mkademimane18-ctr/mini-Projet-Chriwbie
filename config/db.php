@@ -11,7 +11,10 @@ try {
     throw new RuntimeException('Database configuration is unavailable.');
 }
 
-$readEnvironment = static function (string $name, string $default = ''): string {
+$readEnvironment = static function (
+    string $name,
+    string $default = ''
+): string {
     $values = [
         $_ENV[$name] ?? null,
         $_SERVER[$name] ?? null,
@@ -52,8 +55,14 @@ foreach ([
 }
 
 if ($missingVariables !== []) {
-    error_log('Missing database variables: ' . implode(', ', $missingVariables));
-    throw new RuntimeException('Database configuration is missing.');
+    error_log(
+        'Missing database variables: ' .
+        implode(', ', $missingVariables)
+    );
+
+    throw new RuntimeException(
+        'Database configuration is missing.'
+    );
 }
 
 try {
@@ -69,15 +78,28 @@ try {
     $caPath = __DIR__ . '/../certs/ca.pem';
 
     if (!is_file($caPath)) {
-        throw new RuntimeException('Aiven CA certificate not found.');
+        throw new RuntimeException(
+            'Aiven CA certificate not found.'
+        );
     }
 
     $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
     $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
 
-    $pdo = new PDO($dsn, $user, $password, $options);
+    $pdo = new PDO(
+        $dsn,
+        $user,
+        $password,
+        $options
+    );
 
 } catch (Throwable $e) {
-    echo "DATABASE ERROR: " . $e->getMessage();
-    exit;
+    error_log('Database connection failed: ' . $e->getMessage());
+
+    http_response_code(500);
+
+    exit(json_encode([
+        'success' => false,
+        'message' => 'Erreur de connexion à la base de données.'
+    ]));
 }
