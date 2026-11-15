@@ -3,12 +3,20 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
 try {
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->safeLoad();
 } catch (Throwable $e) {
     error_log('Unable to load database environment configuration.');
-    throw new RuntimeException('Database configuration is unavailable.');
+
+    throw new RuntimeException(
+        'Database configuration is unavailable.',
+        1001,
+        $e
+    );
 }
 
 $readEnvironment = static function (
@@ -61,7 +69,8 @@ if ($missingVariables !== []) {
     );
 
     throw new RuntimeException(
-        'Database configuration is missing.'
+        'Database configuration is missing.',
+        1001
     );
 }
 
@@ -83,8 +92,15 @@ try {
         );
     }
 
-    $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
-    $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+    // PHP 8.5 compatible SSL options
+    if (defined('Pdo\\Mysql::ATTR_SSL_CA')) {
+        $options[constant('Pdo\\Mysql::ATTR_SSL_CA')] = $caPath;
+        $options[constant('Pdo\\Mysql::ATTR_SSL_VERIFY_SERVER_CERT')] = true;
+    } else {
+        // Compatibility with older PHP versions
+        $options[PDO::MYSQL_ATTR_SSL_CA] = $caPath;
+        $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+    }
 
     $pdo = new PDO(
         $dsn,
@@ -94,12 +110,16 @@ try {
     );
 
 } catch (Throwable $e) {
-    error_log('Database connection failed: ' . $e->getMessage());
+    error_log(
+        'Database connection failed: ' .
+        get_class($e) . ' / ' .
+        $e->getMessage()
+    );
 
-    http_response_code(500);
-
-    exit(json_encode([
-        'success' => false,
-        'message' => 'Erreur de connexion à la base de données.'
-    ]));
+    throw new RuntimeException(
+        'Database connection is unavailable.',
+        1002,
+        $e
+    );
 }
+
