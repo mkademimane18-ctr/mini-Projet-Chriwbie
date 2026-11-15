@@ -12,13 +12,9 @@ $stmt->execute(['chriwbie_demo']);
 $hash = $stmt->fetchColumn();
 
 if (!$hash) {
-    exit("Compte introuvable.");
+    exit("MEMBER NOT FOUND");
 }
 
-echo "Hash bcrypt détecté : ";
-echo password_get_info($hash)['algoName'] . PHP_EOL;
-
-echo "Test password : ";
-echo password_verify('chriwbie_demo', $hash)
-    ? "CORRECT"
-    : "INCORRECT";
+echo password_verify('Chriwbie@2026', $hash)
+    ? "PASSWORD CORRECT"
+    : "PASSWORD INCORRECT";
