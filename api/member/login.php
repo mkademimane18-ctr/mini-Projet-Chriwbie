@@ -55,8 +55,9 @@ try {
         ]));
     }
 
-    session_regenerate_id(true);
-    $_SESSION['membre_id'] = $membre['id'];
+    session_regenerate_id(false);
+    $_SESSION['membre_id'] = (int)$membre['id'];
+ session_write_close();
 
     echo json_encode([
         'success' => true,
