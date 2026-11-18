@@ -7,258 +7,38 @@
 .app img{object-fit:contain!important}
 .location-row{gap:8px}
 
-/* ================= ADMIN ANIMATIONS ================= */
 
-.admin-page {
-  animation: adminPageEnter 0.55s ease both;
-}
-
-@keyframes adminPageEnter {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.admin-heading {
-  animation: adminPageEnter 0.6s ease both;
-}
-
-.admin-stat-card {
-  animation: adminCardEnter 0.5s ease both;
-  animation-delay: calc(var(--card-index, 0) * 0.09s);
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-.admin-stat-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.09);
-}
-
-@keyframes adminCardEnter {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.admin-annonce-card {
-  display: flex;
-  gap: 18px;
-  padding: 18px;
-  margin-bottom: 16px;
-  border: 1px solid #eee7df;
-  border-radius: 16px;
-  background: #fff;
-  animation: adminCardEnter 0.45s ease both;
-  transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
-}
-
-.admin-annonce-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(50, 35, 20, 0.08);
-}
-
-.admin-annonce-image {
-  width: 125px;
-  min-width: 125px;
-  height: 125px;
-  overflow: hidden;
-  border-radius: 12px;
-}
-
-.admin-annonce-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.4s ease;
-}
-
-.admin-annonce-card:hover .admin-annonce-image img {
-  transform: scale(1.07);
-}
-
-.admin-annonce-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.admin-annonce-top,
-.admin-section-heading,
-.admin-pending-heading,
-.admin-annonce-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.admin-annonce-info h3 {
-  margin: 10px 0 6px;
-}
-
-.admin-annonce-description {
-  color: #777;
-  font-size: 13px;
-  margin-top: 10px;
-}
-
-.admin-status {
-  display: inline-block;
-  padding: 6px 11px;
-  border-radius: 30px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.status-pending {
-  background: #fff3d9;
-  color: #a36b0b;
-}
-
-.status-active {
-  background: #e5f5e9;
-  color: #267a42;
-}
-
-.status-refused {
-  background: #fde8e8;
-  color: #b73535;
-}
-
-.status-expired {
-  background: #eeeeee;
-  color: #666;
-}
-
-.admin-approve,
-.admin-reject,
-.admin-refresh {
-  border: none;
-  border-radius: 9px;
-  padding: 10px 15px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.25s ease;
-}
-
-.admin-approve {
-  background: #e6f4e9;
-  color: #24743c;
-}
-
-.admin-approve:hover {
-  background: #24743c;
-  color: white;
-}
-
-.admin-reject {
-  background: #fce9e9;
-  color: #b73535;
-}
-
-.admin-reject:hover {
-  background: #b73535;
-  color: white;
-}
-
-.admin-refresh {
-  background: #f2ece5;
-  color: #594536;
-}
-
-.admin-refresh:hover {
-  background: #594536;
-  color: white;
-}
-
-.admin-empty {
-  text-align: center;
-  padding: 35px 15px;
-  border: 1px dashed #d9cfc4;
-  border-radius: 15px;
-  margin: 15px 0;
-}
-
-.admin-empty > span {
-  font-size: 30px;
-  color: #37864c;
-}
-
-.admin-management {
-  margin-top: 40px;
-}
-
-.admin-section-heading {
-  margin-bottom: 25px;
-}
-
-.admin-pending-heading {
-  padding: 15px 0;
-  border-bottom: 1px solid #eee7df;
-  margin-bottom: 15px;
-}
-
-.admin-pending-heading > span {
-  background: #f2ece5;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-weight: 700;
-}
-
-.admin-other-heading {
-  margin-top: 35px;
-}
-
-.admin-loading {
-  padding: 20px;
-  color: #888;
-}
-
-@media (max-width: 600px) {
-  .admin-annonce-card {
-    flex-direction: column;
-  }
-
-  .admin-annonce-image {
-    width: 100%;
-    height: 190px;
-  }
-
-  .admin-annonce-actions {
-    flex-wrap: wrap;
-  }
-
-  .admin-annonce-actions button {
-    flex: 1;
-  }
-
-  .admin-section-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .admin-page,
-  .admin-heading,
-  .admin-stat-card,
-  .admin-annonce-card {
-    animation: none;
-    transition: none;
-  }
+/* Authentification membre / administrateur */
+.home-login{background:#3c2118;color:#fff;padding:10px 15px;border-radius:12px;font-size:12px;font-weight:700}
+.account-choice{max-width:520px;margin:0 auto;padding-top:25px}
+.account-choice .account-logo{margin-bottom:16px}
+.account-choice>.eyebrow{text-align:center;color:#a96740;font-size:10px;letter-spacing:.16em;font-weight:700;margin:0 0 8px}
+.account-choice>h2{text-align:center;font:500 27px Georgia,serif;line-height:1.25;margin:0 auto 9px;max-width:420px}
+.account-choice>.quiet{text-align:center;margin:0 0 27px}
+.role-card{width:100%;display:flex;align-items:center;gap:15px;text-align:left;padding:19px 17px;margin:12px 0;border:1px solid #eadfd5;border-radius:19px;background:#fff;box-shadow:0 5px 18px rgba(70,42,25,.045);transition:transform .15s,border-color .15s}
+.role-card:active{transform:scale(.99)}
+.role-icon{width:48px;height:48px;border-radius:15px;background:#f5e9dc;color:#8d5438;display:grid;place-items:center;font-size:25px;flex:none}
+.role-card>span:nth-child(2){display:grid;gap:6px;flex:1}
+.role-card b{font-size:15px;color:#35251d}
+.role-card small{font-size:11px;color:#89796e;line-height:1.4}
+.role-card>strong{font-size:25px;color:#a96740;font-weight:400}
+.role-card.admin-role{border-color:#e8d7c7}
+.role-card.admin-role .role-icon{background:#eee7e0;color:#62402e}
+.account-choice-foot{font-size:12px;color:#86776e;text-align:center;margin:23px 0 14px}
+.account-choice-foot .inline-link{display:inline;padding:0}
+.auth-role-pill{display:table;margin:4px auto 13px;padding:8px 13px;border-radius:30px;background:#e8f3ea;color:#46714c;font-size:11px;font-weight:700}
+.auth-role-pill.is-admin{background:#f4e9df;color:#895336}
+.account-page>h2{text-align:center;line-height:1.25}
+.account-page>.quiet{text-align:center;line-height:1.5}
+.account-page form{max-width:430px;margin-left:auto;margin-right:auto}
+.account-page form label{font-size:12px}
+.account-page form input{width:100%;box-sizing:border-box}
+.account-page form .primary{height:48px;border-radius:13px}
+.auth-error{background:#f9e9e5;color:#a04435;padding:11px 13px;border-radius:11px;font-size:12px;line-height:1.45}
+.auth-back{display:block;margin:17px auto 0}
+.account-page>.inline-link{display:table;margin:16px auto}
+@media(min-width:700px){
+ .account-choice{padding-top:35px}
+ .account-page{max-width:540px;margin:0 auto}
+ .role-card{padding:21px}
 }

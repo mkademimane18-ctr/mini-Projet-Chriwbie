@@ -51,3 +51,12 @@ Les images autonomes n’étaient pas incluses dans l’archive ; les photos de 
 ## Accès à l’administration
 
 L’écran #/admin/access a été ajouté avant la page de modération. Le bouton sur Connexion ouvre cet écran, et un accès direct à #/admin y est redirigé. Pour la démonstration, utilisez moderateur@chriwbie.ma avec le mot de passe Admin2026!. La vérification est faite uniquement dans le navigateur et n’est pas une authentification sécurisée : un vrai contrôle d’identité nécessite un serveur. Le bouton « Continuer avec mon téléphone » a été retiré de l’interface.
+
+
+## Connexion membre et administrateur
+
+Le menu « Se connecter » ouvre une page de choix Membre / Administrateur. Les comptes membres peuvent s'inscrire et se connecter avec MySQL. Le profil affiche les informations du compte connecté. La connexion administrateur est distincte et le serveur vérifie le rôle enregistré en base. Voir `AUTH_SETUP.md` pour créer le premier administrateur.
+
+Les tables `comptes` et `sessions_comptes` sont créées automatiquement par `api/auth.php`. Les mots de passe sont hachés et les sessions sont conservées côté serveur. La clé `ADMIN_SETUP_KEY` ne doit être configurée que le temps de créer le premier administrateur, puis supprimée.
+
+Note : l'association des annonces au membre connecté et la modération complète restent à intégrer séparément ; l'authentification ne les active pas automatiquement.
